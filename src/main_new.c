@@ -140,8 +140,8 @@ main(int argc, char* argv[])
 	//Queue of pointers to a struct
 	xQueueSender=xQueueCreate(2, sizeof(struct Time *));
 	//task creation
-	xReturnedSender=xTaskCreate(xSenderTask,"sender",100,0,1,&xHandleSender);
-	xReturnedReceiver=xTaskCreate(xReceiverTask,"receiver",100,0,2,&xHandleReceiver);
+	xReturnedSender=xTaskCreate(xSenderTask,"sender",1024,0,1,&xHandleSender);
+	xReturnedReceiver=xTaskCreate(xReceiverTask,"receiver",1024,0,2,&xHandleReceiver);
 	//Init function.
 	Init();
 
@@ -172,11 +172,6 @@ void Init(void)
 		blocked_send = 0;
 		success_send = 0;
 		success_receive = 0;
-	}else if(count == 6){
-		xTimerDelete( xTimerSender, ( TickType_t ) 10);
-		xTimerDelete( xTimerReceiver, ( TickType_t ) 10);
-		trace_puts("Game Over!!");
-		 vTaskEndScheduler();
 	}
 	else{
 		trace_printf("Total successfully sent: %d\n", success_send);
@@ -188,14 +183,16 @@ void Init(void)
 		xQueueReset( xQueueSender );
 
 	}
-
-	if(xTimerChangePeriod(xTimerSender,arr[count]/portTICK_PERIOD_MS,portMAX_DELAY)){
-		trace_printf("Start counting at sender timer %d ms\n",arr[count]);
-		trace_printf("Start counting at sender timer in Ticks %d \n",arr[count]/portTICK_PERIOD_MS);
-		trace_printf("Assuring the period = %d ms\n",xTimerGetPeriod(xTimerSender)*portTICK_PERIOD_MS);
-		count++;
+	if(count == 6){
+		xTimerDelete( xTimerSender, ( TickType_t ) 10);
+		xTimerDelete( xTimerReceiver, ( TickType_t ) 10);
+		trace_puts("Game Over!!");
+		vTaskEndScheduler();
 	}
-//print values
+
+	xTimerChangePeriod(xTimerSender,arr[count]/portTICK_PERIOD_MS,portMAX_DELAY);
+	count++;
+
 
 }
 void xSenderTask( void * pvParameters )
@@ -206,51 +203,54 @@ void xSenderTask( void * pvParameters )
 	while(1)
 	{
 
-		xSemaphoreTake( xSemaphoreSender,portMAX_DELAY);
-		senderTime.ticks=xTaskGetTickCount();
-		//trace_puts("hi in sender task"); //trace_printf causes a hang in the program
-		xReturnedQueue=xQueueSend( xQueueSender,( void * ) &senderTimePtr,0);
-		if(xReturnedQueue == pdTRUE)
+		if(xSemaphoreTake( xSemaphoreSender,portMAX_DELAY)==pdTRUE)
 		{
-			success_send++;
-		}
-		else
-		{
-			blocked_send++;
+			senderTime.ticks=xTaskGetTickCount();
+			//trace_puts("hi in sender task"); //trace_printf causes a hang in the program
+			xReturnedQueue=xQueueSend( xQueueSender,( void * ) &senderTimePtr,0);
+			if(xReturnedQueue == pdTRUE)
+			{
+				success_send++;
+			}
+			else
+			{
+				blocked_send++;
+			}
 		}
 	}
 }
 void xReceiverTask( void * pvParameters )
 {
-
+	struct Time receiverTime;
 	struct Time* receiverTimePtr;
 	while(1)
-		{
+	{
 
-		xSemaphoreTake( xSemaphoreReceiver,portMAX_DELAY);
-		//trace_puts("hi in receiver task");
+		if(xSemaphoreTake( xSemaphoreReceiver,portMAX_DELAY)==pdTRUE)
+		{
+			trace_puts("hi in receiver task");
 
-		xReturnedQueue=xQueueReceive(xQueueSender, (void *) &receiverTimePtr,0);
-		if(pdTRUE)
-		{
-			success_receive++;
-		}
-		if(success_receive==20)
-		{
-			Init();
-		}
-		}
+			xReturnedQueue=xQueueReceive(xQueueSender, (void *) &receiverTimePtr,0);
+			if(xReturnedQueue==pdTRUE)
+			{
+				success_receive++;
+			}
+			if(success_receive==500)
+			{
+				Init();
+			}
+		}}
 }
 static void SenderTimerCallback( TimerHandle_t xTimer )
 {
 	xSemaphoreGive(xSemaphoreSender);
-	trace_printf("hi in sender callback\n");
+	//trace_printf("hi in sender callback\n");
 }
 
 static void ReceiverTimerCallback( TimerHandle_t xTimer )
 {
 	xSemaphoreGive(xSemaphoreReceiver);
-	trace_puts("hi in receiver callback");
+	//trace_puts("hi in receiver callback");
 }
 
 

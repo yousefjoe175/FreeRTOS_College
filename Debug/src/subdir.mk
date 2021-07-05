@@ -6,8 +6,6 @@
 C_SRCS += \
 ../src/initialize-hardware.c \
 ../src/led.c \
-../src/main.c \
-../src/main2.c \
 ../src/main_new.c \
 ../src/stm32f4xx_hal_msp.c \
 ../src/write.c 
@@ -15,8 +13,6 @@ C_SRCS += \
 OBJS += \
 ./src/initialize-hardware.o \
 ./src/led.o \
-./src/main.o \
-./src/main2.o \
 ./src/main_new.o \
 ./src/stm32f4xx_hal_msp.o \
 ./src/write.o 
@@ -24,8 +20,6 @@ OBJS += \
 C_DEPS += \
 ./src/initialize-hardware.d \
 ./src/led.d \
-./src/main.d \
-./src/main2.d \
 ./src/main_new.d \
 ./src/stm32f4xx_hal_msp.d \
 ./src/write.d 
